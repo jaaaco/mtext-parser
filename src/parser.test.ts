@@ -1277,6 +1277,23 @@ describe('MTextParser', () => {
       expect(tokens[0].ctx.paragraph.indent).toBe(2);
     });
 
+    it('parses tab stops', () => {
+      const parser = new MTextParser('\\pt1,2.5,r3;Tabbed');
+      const tokens = Array.from(parser.parse());
+      expect(tokens[0].data).toBe('Tabbed');
+      expect(tokens[0].ctx.paragraph.tabs).toEqual([1, 2.5, 'r3']);
+    });
+
+    it('does not hang on a tab stop list that clears tab stops', () => {
+      // AutoCAD writes `\pi0,l0,tz;` to clear paragraph tab stops. The `z` is
+      // neither a tab stop type nor a number, and used to loop forever.
+      const parser = new MTextParser('A\\P\\pi0,l0,tz;B');
+      const tokens = Array.from(parser.parse());
+      const words = tokens.filter(t => t.type === TokenType.WORD).map(t => t.data);
+      expect(words).toEqual(['A', 'B']);
+      expect(tokens[tokens.length - 1].ctx.paragraph.tabs).toEqual([]);
+    });
+
     it('parses alignment', () => {
       const parser = new MTextParser('\\pqc;Centered');
       const tokens = Array.from(parser.parse());

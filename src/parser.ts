@@ -1216,11 +1216,17 @@ export class MTextParser {
               const value = parseFloatValue();
               tabStops.push(type + value.toString());
             } else {
+              // `parseFloatValue()` returns 0 and consumes nothing when the
+              // scanner is not on a number, so progress has to be checked
+              // rather than the returned value. AutoCAD writes `\pi0,l0,tz;`
+              // to clear tab stops, and the `z` sent this loop pushing zeros
+              // until it ran out of memory.
+              const indexBefore = scanner.currentIndex;
               const value = parseFloatValue();
-              if (!isNaN(value)) {
-                tabStops.push(value);
-              } else {
+              if (scanner.currentIndex === indexBefore) {
                 scanner.consume(1);
+              } else if (!isNaN(value)) {
+                tabStops.push(value);
               }
             }
           }
